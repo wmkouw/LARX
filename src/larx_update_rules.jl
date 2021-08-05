@@ -64,8 +64,7 @@ function ruleVariationalLARXIn1PNPPPP(marg_y :: ProbabilityDistribution{Multivar
 
     # Expectations of marginal beliefs
     my = unsafeMean(marg_y)
-    mθ = unsafeMean(marg_θ)
-    Vθ = unsafeCov(marg_θ)
+    mθ,Vθ = unsafeMeanCov(marg_θ)
     mη = unsafeMean(marg_η)
     mu = unsafeMean(marg_u)
     mγ = unsafeMean(marg_γ)
@@ -76,11 +75,11 @@ function ruleVariationalLARXIn1PNPPPP(marg_y :: ProbabilityDistribution{Multivar
 	end
 
     # Construct precision matrix
-	mW = AR_precisionmat(mγ, order)
+	Wmγ = AR_precisionmat(mγ, order)
 	
 	# Parameters of outgoing message
-    Φ = S'*mW*S + Jx*s'*mW*s*Jx'
-    ϕ = (S + s*Jx')'*mW*(my - s*mη*mu) - Jx*(g(mθ,approxx) - Jx'*approxx)*mγ
+    Φ = S'*Wmγ*S + mγ*(mθ*mθ'+ Vθ)
+    ϕ = (S + s*mθ')'*Wmγ*(my - s*mη*mu)
 
     return Message(Multivariate, GaussianWeightedMeanPrecision, xi=ϕ, w=Φ)
 end
@@ -95,8 +94,7 @@ function ruleVariationalLARXIn2PPNPPP(marg_y :: ProbabilityDistribution{Multivar
 
 	# Expectations of marginal beliefs
 	my = unsafeMean(marg_y)
-	mz = unsafeMean(marg_z)
-	Vz = unsafeCov(marg_z)
+	mz,Vz = unsafeMeanCov(marg_z)
 	mη = unsafeMean(marg_η)
 	mu = unsafeMean(marg_u)
 	mγ = unsafeMean(marg_γ)
@@ -107,11 +105,11 @@ function ruleVariationalLARXIn2PPNPPP(marg_y :: ProbabilityDistribution{Multivar
 	end
 
     # Construct precision matrix
-	mW = AR_precisionmat(mγ, order)
+	Wmγ = AR_precisionmat(mγ, order)
 
     # Parameters of outgoing message
-    Φ = mγ*Jθ*Jθ'
-    ϕ = Jθ*s'*mW*(my - s*mη*mu - s*(g(approxθ, mz) - Jθ'*approxθ))
+    Φ = mγ*(mz*mz' + Vz)
+    ϕ = mz*s'*Wmγ*(my - s*mη*mu)
 
     return Message(Multivariate, GaussianWeightedMeanPrecision, xi=ϕ, w=Φ)
 end
@@ -127,8 +125,7 @@ function ruleVariationalLARXIn3PPPNPP(marg_y :: ProbabilityDistribution{Multivar
 	mθ = unsafeMean(marg_θ)
     my = unsafeMean(marg_y)
     mz = unsafeMean(marg_z)
-	mu = unsafeMean(marg_u)
-	vu = unsafeCov(marg_u)
+	mu,vu = unsafeMeanCov(marg_u)
 	mγ = unsafeMean(marg_γ)
 
 	# Check order
@@ -136,12 +133,12 @@ function ruleVariationalLARXIn3PPPNPP(marg_y :: ProbabilityDistribution{Multivar
 		defineOrder(length(mz))
 	end
 
-    # Map transition noise to matrix
-    mW = AR_precisionmat(mγ, order)
+    # Construct precision matrix
+    Wmγ = AR_precisionmat(mγ, order)
 
 	# Parameters of outgoing message
 	Φ = mγ*(mu^2 + vu)
-    ϕ = (mu*s')*mW*(my - (S*mz + s*g(mθ, mz)))
+    ϕ = mu*s'*Wmγ*(my - (S + s*mθ')*mz)
 
 	return Message(Univariate, GaussianWeightedMeanPrecision, xi=ϕ, w=Φ)
 end
@@ -150,15 +147,14 @@ function ruleVariationalLARXIn4PPPPNP(marg_y :: ProbabilityDistribution{Multivar
                                       marg_z :: ProbabilityDistribution{Multivariate},
                                       marg_θ :: ProbabilityDistribution{Multivariate},
 							  	      marg_η :: ProbabilityDistribution{Univariate},
-								       marg_u :: Nothing,
+								      marg_u :: Nothing,
                                       marg_γ :: ProbabilityDistribution{Univariate})
 
  	# Expectations of marginal beliefs
 	mθ = unsafeMean(marg_θ)
     my = unsafeMean(marg_y)
     mz = unsafeMean(marg_z)
-	mη = unsafeMean(marg_η)
-	vη = unsafeCov(marg_η)
+	mη,vη = unsafeMeanCov(marg_η)
 	mγ = unsafeMean(marg_γ)
 
 	# Check order
@@ -166,12 +162,12 @@ function ruleVariationalLARXIn4PPPPNP(marg_y :: ProbabilityDistribution{Multivar
 		defineOrder(length(mz))
 	end
 
-    # Map transition noise to matrix
-    mW = AR_precisionmat(mγ, order)
+    # Construct precision matrix
+    Wmγ = AR_precisionmat(mγ, order)
 
 	# Parameters of outgoing message
 	Φ = mγ*(mη^2 + vη)
-    ϕ = (mη*s')*mW*(my - (S*mz + s*g(mθ, mz)))
+    ϕ = mη*s'*Wmγ*(my - (S + s*mθ')*mz)
 
 	return Message(Univariate, GaussianWeightedMeanPrecision, xi=ϕ, w=Φ)
 end
@@ -184,16 +180,11 @@ function ruleVariationalLARXIn5PPPPPN(marg_y :: ProbabilityDistribution{Multivar
                                       marg_γ :: Nothing)
 
     # Expectations of marginal beliefs
-	mθ = unsafeMean(marg_θ)
-    my = unsafeMean(marg_y)
-    mz = unsafeMean(marg_z)
-	mη = unsafeMean(marg_η)
-	mu = unsafeMean(marg_u)
-    Vθ = unsafeCov(marg_θ)
-    Vy = unsafeCov(marg_y)
-    Vz = unsafeCov(marg_z)
-	vη = unsafeCov(marg_η)
-	vu = unsafeCov(marg_u)
+	mθ,Vθ = unsafeMeanCov(marg_θ)
+    my,Vy = unsafeMeanCov(marg_y)
+    mz,Vz = unsafeMeanCov(marg_z)
+	mη,vη = unsafeMeanCov(marg_η)
+	mu,vu = unsafeMeanCov(marg_u)
 
 	# Check order
 	if order == Nothing
@@ -201,22 +192,21 @@ function ruleVariationalLARXIn5PPPPPN(marg_y :: ProbabilityDistribution{Multivar
 	end
 
 	# Convenience variables
-	Aθx = S*mz + s*g(mθ, mz)
+	EA = (S + s*mθ')
+	EB = s*mη
 
 	# Intermediate terms
 	term1 = (my*my' + Vy)[1,1]
-	term2 = -(Aθx*my')[1,1]
-	term3 = -((s*mη*mu)*my')[1,1]
-	term4 = -(my*Aθx')[1,1]
-	term5 = (mz'*S'*S*mz)[1,1] + (S*Vx*S')[1,1] + g(mθ, mz)^2 + Jx'*Vx*Jx + Jθ'*Vθ*Jθ
-	term6 = ((s*mη*mu)*Aθx')[1,1]
-	term7 = -(my*(s*mη*mu)')[1,1]
-	term8 = (Aθx*(s*mη*mu)')[1,1]
-	term9 = (mu^2 + vu)*(mη^2 + vη)
+	term2 = ((EA*mz + EB*mu)*my')[1,1]
+	term3 = (my*(EA*mz + EB*mu)')[1,1]
+	term4 = ((S'*S + S'*s*mθ' + mθ*s'*S + mθ*mθ' + Vθ)*(mz*mz' + Vz))[1,1]
+	term5 = (EB*mu*mz'*EA')[1,1]
+	term6 = (EA*mz*mu'*EB')[1,1]
+	term7 = (mu*s*(mη*mη' + vη)*s')[1,1]
 
 	# Parameters of outgoing message
 	a = 3/2
-    B = (term1 + term2 + term3 + term4 + term5 + term6 + term7 + term8 + term9)/2
+    B = 1/2*(term1 - term2 - term3 + term4 + term5 + term6 + term7)
 
 	return Message(Gamma, a=a, b=B)
 end
