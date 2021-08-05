@@ -40,9 +40,7 @@ function ruleVariationalLARXOutNPPPPP(marg_y :: Nothing,
     mγ = unsafeMean(marg_γ)
 
     # Check order
-	if order == Nothing
-		defineOrder(length(mz))
-	end
+	if order == Nothing; defineOrder(length(mz)); end
 
 		# Construct precision matrix
     Wmγ = AR_precisionmat(mγ, order)
@@ -70,9 +68,7 @@ function ruleVariationalLARXIn1PNPPPP(marg_y :: ProbabilityDistribution{Multivar
     mγ = unsafeMean(marg_γ)
 
 	# Check order
-	if order == Nothing
-		defineOrder(length(mz))
-	end
+	if order == Nothing; defineOrder(length(mz)); end
 
     # Construct precision matrix
 	Wmγ = AR_precisionmat(mγ, order)
@@ -100,9 +96,7 @@ function ruleVariationalLARXIn2PPNPPP(marg_y :: ProbabilityDistribution{Multivar
 	mγ = unsafeMean(marg_γ)
 
 	# Check order
-	if order == Nothing
-		defineOrder(length(mz))
-	end
+	if order == Nothing; defineOrder(length(mz)); end
 
     # Construct precision matrix
 	Wmγ = AR_precisionmat(mγ, order)
@@ -129,9 +123,7 @@ function ruleVariationalLARXIn3PPPNPP(marg_y :: ProbabilityDistribution{Multivar
 	mγ = unsafeMean(marg_γ)
 
 	# Check order
-	if order == Nothing
-		defineOrder(length(mz))
-	end
+	if order == Nothing; defineOrder(length(mz)); end
 
     # Construct precision matrix
     Wmγ = AR_precisionmat(mγ, order)
@@ -158,9 +150,7 @@ function ruleVariationalLARXIn4PPPPNP(marg_y :: ProbabilityDistribution{Multivar
 	mγ = unsafeMean(marg_γ)
 
 	# Check order
-	if order == Nothing
-		defineOrder(length(mz))
-	end
+	if order == Nothing; defineOrder(length(mz)); end
 
     # Construct precision matrix
     Wmγ = AR_precisionmat(mγ, order)
@@ -187,9 +177,7 @@ function ruleVariationalLARXIn5PPPPPN(marg_y :: ProbabilityDistribution{Multivar
 	mu,vu = unsafeMeanCov(marg_u)
 
 	# Check order
-	if order == Nothing
-		defineOrder(length(mz))
-	end
+	if order == Nothing; defineOrder(length(mz)); end
 
 	# Convenience variables
 	EA = (S + s*mθ')
@@ -197,16 +185,37 @@ function ruleVariationalLARXIn5PPPPPN(marg_y :: ProbabilityDistribution{Multivar
 
 	# Intermediate terms
 	term1 = (my*my' + Vy)[1,1]
-	term2 = ((EA*mz + EB*mu)*my')[1,1]
-	term3 = (my*(EA*mz + EB*mu)')[1,1]
-	term4 = ((S'*S + S'*s*mθ' + mθ*s'*S + mθ*mθ' + Vθ)*(mz*mz' + Vz))[1,1]
-	term5 = (EB*mu*mz'*EA')[1,1]
-	term6 = (EA*mz*mu'*EB')[1,1]
-	term7 = (mu*s*(mη*mη' + vη)*s')[1,1]
+	term2 = -(EA*mz*my')[1,1]
+	term3 = -(EB*mu*my')[1,1]
+	term4 = -(my*mz'*EA)[1,1]
+	term5 = ((S'*S + mθ*mθ' + Vθ)*(mz*mz' + Vz))[1,1]
+	term6 = (EB*mu*mz'*EA')[1,1]
+	term7 = (my*mu*EB')[1,1]
+	term8 = (EA*mz*mu*EB')[1,1]
+	term9 = (mu^2*s*(mη*mη' + vη)*s')[1,1]
+
+	# print("term 1 = ")
+	# println(term1)
+	# print("term 2 = ")
+	# println(term2)
+	# print("term 3 = ")
+	# println(term3)
+	# print("term 4 = ")
+	# println(term4)
+	# print("term 5 = ")
+	# println(term5)
+	# print("term 6 = ")
+	# println(term6)
+	# print("term 7 = ")
+	# println(term7)
+	# print("term 8 = ")
+	# println(term8)
+	# print("term 9 = ")
+	# println(term9)
 
 	# Parameters of outgoing message
 	a = 3/2
-    B = 1/2*(term1 - term2 - term3 + term4 + term5 + term6 + term7)
+    B = 1/2*(term1 + term2 + term3 + term4 + term5 + term6 + term7 + term8 + term9)
 
 	return Message(Gamma, a=a, b=B)
 end
